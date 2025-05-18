@@ -1,0 +1,47 @@
+<div class="w-64 bg-white shadow-lg fixed h-full sidebar">
+    <div class="p-4">
+        <div class="flex items-center space-x-2 mb-8">
+            <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                <i class="fas fa-headphones-alt text-white text-xl"></i>
+            </div>
+            <h1 class="text-xl font-bold text-blue-600">UwU Zone</h1>
+        </div>
+        
+        <nav class="space-y-4">
+            <a href="index.php" class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                <i class="fas fa-home sidebar-icon"></i>
+                <span>Home</span>
+            </a>
+            <a href="explore.php" class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) === 'explore.php' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                <i class="fas fa-compass sidebar-icon"></i>
+                <span>Explore</span>
+            </a>
+            <a href="saved.php" class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) === 'saved.php' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                <i class="fas fa-heart sidebar-icon"></i>
+                <span>Saved</span>
+            </a>
+            <a href="cart.php" class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) === 'cart.php' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                <i class="fas fa-shopping-cart sidebar-icon"></i>
+                <span>Cart</span>
+                <?php if (isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
+                <span id="cart-count" class="bg-blue-500 text-white text-xs rounded-full px-2 py-1"><?php echo array_sum($_SESSION['cart']); ?></span>
+                <?php endif; ?>
+            </a>
+            <?php if (isset($_SESSION['user_id'])): ?>
+                <a href="wallet.php" class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) === 'wallet.php' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                    <i class="fas fa-wallet sidebar-icon"></i>
+                    <span>Wallet</span>
+                </a>
+                <a href="profile.php" class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) === 'profile.php' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                    <i class="fas fa-user sidebar-icon"></i>
+                    <span>Profile</span>
+                </a>
+            <?php else: ?>
+                <button onclick="showAuthModal('login')" class="sidebar-link w-full flex items-center space-x-3 p-3 rounded-lg">
+                    <i class="fas fa-sign-in-alt sidebar-icon"></i>
+                    <span>Login</span>
+                </button>
+            <?php endif; ?>
+        </nav>
+    </div>
+</div>
