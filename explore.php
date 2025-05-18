@@ -1,0 +1,152 @@
+<?php
+session_start();
+require_once 'config/database.php';
+
+// Database connection function
+function getDatabaseConnection() {
+    static $db = null;
+    if ($db === null) {
+        $database = new Database();
+        $db = $database->getConnection();
+    }
+    return $db;
+}
+
+// Get products with filters
+function getProducts($filters = []) {
+    $db = getDatabaseConnection();
+    
+    $query = "SELECT * FROM products WHERE 1=1";
+    $params = [];
+    
+    if (!empty($filters['search'])) {
+        $query .= " AND (name LIKE ? OR description LIKE ?)";
+        $searchTerm = "%{$filters['search']}%";
+        $params[] = $searchTerm;
+        $params[] = $searchTerm;
+    }
+    
+    if (!empty($filters['min_price'])) {
+        $query .= " AND price >= ?";
+        $params[] = $filters['min_price'];
+    }
+    
+    if (!empty($filters['max_price'])) {
+        $query .= " AND price <= ?";
+        $params[] = $filters['max_price'];
+    }
+    
+    if (!empty($filters['sort'])) {
+        switch ($filters['sort']) {
+            case 'price-asc':
+                $query .= " ORDER BY price ASC";
+                break;
+            case 'price-desc':
+                $query .= " ORDER BY price DESC";
+                break;
+            default:
+                $query .= " ORDER BY sales_count DESC";
+        }
+    } else {
+        $query .= " ORDER BY sales_count DESC";
+    }
+    
+    $stmt = $db->prepare($query);
+    $stmt->execute($params);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Get filters from URL
+$filters = [
+    'search' => $_GET['search'] ?? '',
+    'min_price' => $_GET['min_price'] ?? '',
+    'max_price' => $_GET['max_price'] ?? '',
+    'sort' => $_GET['sort'] ?? 'popular'
+];
+
+// Get filtered products
+$products = getProducts($filters);
+
+// Start output buffering
+ob_start();
+?>
+
+<!-- Filters Section -->
+<div class="bg-white px-6 py-3 rounded-lg shadow-sm mb-6">
+    <div class="flex items-center space-x-6">
+        <h1 class="text-2xl font-bold whitespace-nowrap">Explore In-Ear Monitors</h1>
+        <form action="explore.php" method="GET" class="flex items-center flex-1 justify-end space-x-4">
+            <?php if (isset($_GET['search'])): ?>
+                <input type="hidden" name="search" value="<?php echo htmlspecialchars($_GET['search']); ?>">
+            <?php endif; ?>
+            <div class="flex items-center">
+                <span class="text-sm font-medium text-gray-700 mr-2">Price:</span>
+                <div class="flex items-center space-x-1">
+                    <input type="number" 
+                           name="min_price" 
+                           value="<?php echo htmlspecialchars($filters['min_price']); ?>" 
+                           placeholder="Min" 
+                           class="w-20 px-2 py-1 text-sm rounded border border-gray-200 focus:outline-none focus:border-blue-500">
+                    <span class="text-gray-500">-</span>
+                    <input type="number" 
+                           name="max_price" 
+                           value="<?php echo htmlspecialchars($filters['max_price']); ?>" 
+                           placeholder="Max" 
+                           class="w-20 px-2 py-1 text-sm rounded border border-gray-200 focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+            <div class="flex items-center">
+                <span class="text-sm font-medium text-gray-700 mr-2">Sort:</span>
+                <select name="sort" 
+                        class="w-36 px-2 py-1 text-sm rounded border border-gray-200 focus:outline-none focus:border-blue-500">
+                    <option value="popular" <?php echo $filters['sort'] === 'popular' ? 'selected' : ''; ?>>Most Popular</option>
+                    <option value="price-asc" <?php echo $filters['sort'] === 'price-asc' ? 'selected' : ''; ?>>Price: Low to High</option>
+                    <option value="price-desc" <?php echo $filters['sort'] === 'price-desc' ? 'selected' : ''; ?>>Price: High to Low</option>
+                </select>
+            </div>
+            <button type="submit" 
+                    class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors flex items-center">
+                <i class="fas fa-filter mr-1"></i>Apply
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Products Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <?php foreach ($products as $index => $product): ?>
+    <div class="product-card bg-white rounded-xl shadow-md p-4 animate-fade-in" 
+         style="animation-delay: <?php echo $index * 0.1; ?>s">
+        <a href="product.php?id=<?php echo $product['id']; ?>" class="block">
+            <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
+                 alt="<?php echo htmlspecialchars($product['name']); ?>" 
+                 class="w-full h-48 object-contain mb-4 product-image">
+            <h3 class="font-semibold mb-2 hover:text-blue-600 transition-colors duration-300">
+                <?php echo htmlspecialchars($product['name']); ?>
+            </h3>
+        </a>
+        <div class="flex items-center mb-2">
+            <div class="flex text-yellow-400">
+                <?php for ($i = 0; $i < 5; $i++): ?>
+                    <i class="fas fa-star"></i>
+                <?php endfor; ?>
+            </div>
+            <span class="ml-2 text-sm text-gray-600"><?php echo $product['review_count']; ?> Reviews</span>
+        </div>
+        <p class="text-blue-600 font-bold">Rp. <?php echo number_format($product['price']); ?></p>
+        <button class="p-2 text-gray-600 hover:text-red-500 transition-colors"
+                data-action="toggle-wishlist"
+                data-product-id="<?php echo $product['id']; ?>">
+            <i class="fas fa-heart"></i>
+        </button>
+    </div>
+    <?php endforeach; ?>
+</div>
+
+<?php
+$pageContent = ob_get_clean();
+$pageTitle = 'Explore Products - UwU Zone';
+
+// Include the layout
+require_once 'partials/layout.php';
+?>
