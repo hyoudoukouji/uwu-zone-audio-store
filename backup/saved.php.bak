@@ -1,0 +1,90 @@
+<?php
+$pageTitle = 'Saved Items - UwU Zone';
+
+// Get wishlist items
+function getWishlistItems() {
+    if (!isset($_SESSION['wishlist']) || empty($_SESSION['wishlist'])) {
+        return [];
+    }
+
+    $db = getDatabaseConnection();
+    $placeholders = str_repeat('?,', count($_SESSION['wishlist']) - 1) . '?';
+    $query = "SELECT * FROM products WHERE id IN ($placeholders)";
+    $stmt = $db->prepare($query);
+    $stmt->execute($_SESSION['wishlist']);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Get wishlist products
+$wishlistItems = getWishlistItems();
+
+// Start output buffering
+ob_start();
+?>
+
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">Saved Items</h1>
+        <p class="text-gray-600"><?php echo count($wishlistItems); ?> items</p>
+    </div>
+
+    <?php if (empty($wishlistItems)): ?>
+    <div class="bg-white rounded-xl shadow-sm p-8 text-center">
+        <div class="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+            <i class="fas fa-heart text-3xl text-gray-400"></i>
+        </div>
+        <h2 class="text-xl font-semibold mb-2">Your wishlist is empty</h2>
+        <p class="text-gray-600 mb-6">Browse our products and save items you love!</p>
+        <a href="explore.php" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="fas fa-compass mr-2"></i>
+            Explore Products
+        </a>
+    </div>
+    <?php else: ?>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <?php foreach ($wishlistItems as $index => $product): ?>
+        <div class="product-card bg-white rounded-xl shadow-md p-4 animate-fade-in" 
+             style="animation-delay: <?php echo $index * 0.1; ?>s">
+            <a href="product.php?id=<?php echo $product['id']; ?>" class="block">
+                <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
+                     alt="<?php echo htmlspecialchars($product['name']); ?>" 
+                     class="w-full h-48 object-contain mb-4 product-image">
+                <h3 class="font-semibold mb-2 hover:text-blue-600 transition-colors duration-300">
+                    <?php echo htmlspecialchars($product['name']); ?>
+                </h3>
+            </a>
+            <div class="flex items-center mb-2">
+                <div class="flex text-yellow-400">
+                    <?php for ($i = 0; $i < 5; $i++): ?>
+                        <i class="fas fa-star"></i>
+                    <?php endfor; ?>
+                </div>
+                <span class="ml-2 text-sm text-gray-600"><?php echo $product['review_count']; ?> Reviews</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <p class="text-blue-600 font-bold">Rp. <?php echo number_format($product['price']); ?></p>
+                <div class="flex items-center space-x-2">
+                    <button class="p-2 text-gray-600 hover:text-blue-600 transition-colors"
+                            data-action="add-to-cart"
+                            data-product-id="<?php echo $product['id']; ?>">
+                        <i class="fas fa-shopping-cart"></i>
+                    </button>
+                    <button class="p-2 text-red-500 hover:text-red-600 transition-colors"
+                            data-action="toggle-wishlist"
+                            data-product-id="<?php echo $product['id']; ?>">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+</div>
+
+<?php
+$pageContent = ob_get_clean();
+
+// Include the layout
+require_once 'partials/layout.php';
+?>
